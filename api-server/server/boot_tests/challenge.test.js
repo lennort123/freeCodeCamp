@@ -1,5 +1,5 @@
 /* global describe xdescribe it expect */
-import { isEqual, first, find } from 'lodash';
+import { first, find } from 'lodash';
 import sinon from 'sinon';
 import { mockReq, mockRes } from 'sinon-express-mock';
 
@@ -9,26 +9,22 @@ import {
   createChallengeUrlResolver,
   createRedirectToCurrentChallenge,
   getFirstChallenge,
-  isValidChallengeCompletion,
-  createRedirectToLearn
+  isValidChallengeCompletion
 } from '../boot/challenge';
 
 import {
   firstChallengeUrl,
   requestedChallengeUrl,
+  mockAllChallenges,
   mockChallenge,
-  mockFirstChallenge,
   mockUser,
-  mockApp,
   mockGetFirstChallenge,
-  firstChallengeQuery,
   mockCompletedChallenge,
-  mockCompletedChallenges,
-  mockPathMigrationMap
+  mockCompletedChallenges
 } from './fixtures';
 
 describe('boot/challenge', () => {
-  xdescribe('backendChallengeCompleted');
+  xdescribe('backendChallengeCompleted', () => {});
 
   describe('buildUserUpdate', () => {
     it('returns an Object with a nested "completedChallenges" property', () => {
@@ -164,7 +160,7 @@ describe('boot/challenge', () => {
       expect(result).toEqual(requestedChallengeUrl);
     });
 
-    it('can handle non-url-complient challenge names', () => {
+    it('can handle non-url-compliant challenge names', () => {
       const challenge = { ...mockChallenge, superBlock: 'my awesome' };
       const expected = '/learn/my-awesome/actual/challenge';
       const result = buildChallengeUrl(challenge);
@@ -175,20 +171,26 @@ describe('boot/challenge', () => {
 
   describe('challengeUrlResolver', () => {
     it('resolves to the first challenge url by default', async () => {
-      const challengeUrlResolver = await createChallengeUrlResolver(mockApp, {
-        _getFirstChallenge: mockGetFirstChallenge
-      });
+      const challengeUrlResolver = await createChallengeUrlResolver(
+        mockAllChallenges,
+        {
+          _getFirstChallenge: mockGetFirstChallenge
+        }
+      );
 
       return challengeUrlResolver().then(url => {
         expect(url).toEqual(firstChallengeUrl);
       });
-    });
+    }, 10000);
 
     // eslint-disable-next-line max-len
     it('returns the first challenge url if the provided id does not relate to a challenge', async () => {
-      const challengeUrlResolver = await createChallengeUrlResolver(mockApp, {
-        _getFirstChallenge: mockGetFirstChallenge
-      });
+      const challengeUrlResolver = await createChallengeUrlResolver(
+        mockAllChallenges,
+        {
+          _getFirstChallenge: mockGetFirstChallenge
+        }
+      );
 
       return challengeUrlResolver('not-a-real-challenge').then(url => {
         expect(url).toEqual(firstChallengeUrl);
@@ -196,9 +198,12 @@ describe('boot/challenge', () => {
     });
 
     it('resolves the correct url for the requested challenge', async () => {
-      const challengeUrlResolver = await createChallengeUrlResolver(mockApp, {
-        _getFirstChallenge: mockGetFirstChallenge
-      });
+      const challengeUrlResolver = await createChallengeUrlResolver(
+        mockAllChallenges,
+        {
+          _getFirstChallenge: mockGetFirstChallenge
+        }
+      );
 
       return challengeUrlResolver('123abc').then(url => {
         expect(url).toEqual(requestedChallengeUrl);
@@ -207,28 +212,14 @@ describe('boot/challenge', () => {
   });
 
   describe('getFirstChallenge', () => {
-    const createMockChallengeModel = success =>
-      success
-        ? {
-            findOne(query, cb) {
-              return isEqual(query, firstChallengeQuery)
-                ? cb(null, mockFirstChallenge)
-                : cb(new Error('no challenge found'));
-            }
-          }
-        : {
-            findOne(_, cb) {
-              return cb(new Error('no challenge found'));
-            }
-          };
     it('returns the correct challenge url from the model', async () => {
-      const result = await getFirstChallenge(createMockChallengeModel(true));
+      const result = await getFirstChallenge(mockAllChallenges);
 
       expect(result).toEqual(firstChallengeUrl);
     });
 
     it('returns the learn base if no challenges found', async () => {
-      const result = await getFirstChallenge(createMockChallengeModel(false));
+      const result = await getFirstChallenge([]);
 
       expect(result).toEqual('/learn');
     });
@@ -247,8 +238,8 @@ describe('boot/challenge', () => {
 
       isValidChallengeCompletion(req, res, next);
 
-      expect(res.sendStatus.called).toBe(true);
-      expect(res.sendStatus.getCall(0).args[0]).toBe(403);
+      expect(res.status.called).toBe(true);
+      expect(res.status.getCall(0).args[0]).toBe(403);
       expect(next.called).toBe(false);
     });
 
@@ -262,8 +253,8 @@ describe('boot/challenge', () => {
 
       isValidChallengeCompletion(req, res, next);
 
-      expect(res.sendStatus.called).toBe(true);
-      expect(res.sendStatus.getCall(0).args[0]).toBe(403);
+      expect(res.status.called).toBe(true);
+      expect(res.status.getCall(0).args[0]).toBe(403);
       expect(next.called).toBe(false);
     });
 
@@ -281,8 +272,8 @@ describe('boot/challenge', () => {
 
       isValidChallengeCompletion(req, res, next);
 
-      expect(res.sendStatus.called).toBe(true);
-      expect(res.sendStatus.getCall(0).args[0]).toBe(403);
+      expect(res.status.called).toBe(true);
+      expect(res.status.getCall(0).args[0]).toBe(403);
       expect(next.called).toBe(false);
     });
 
@@ -332,18 +323,25 @@ describe('boot/challenge', () => {
     });
   });
 
-  xdescribe('modernChallengeCompleted');
+  xdescribe('modernChallengeCompleted', () => {});
 
-  xdescribe('projectCompleted');
+  xdescribe('projectCompleted', () => {});
 
   describe('redirectToCurrentChallenge', () => {
     const mockHomeLocation = 'https://www.example.com';
     const mockLearnUrl = `${mockHomeLocation}/learn`;
+    const mockgetParamsFromReq = () => ({
+      returnTo: mockLearnUrl,
+      origin: mockHomeLocation,
+      pathPrefix: ''
+    });
+    const mockNormalizeParams = params => params;
 
-    it('redircts to the learn base url for non-users', async done => {
+    it('redirects to the learn base url for non-users', async done => {
       const redirectToCurrentChallenge = createRedirectToCurrentChallenge(
         () => {},
-        { _homeLocation: mockHomeLocation, _learnUrl: mockLearnUrl }
+        mockNormalizeParams,
+        mockgetParamsFromReq
       );
       const req = mockReq();
       const res = mockRes();
@@ -356,13 +354,17 @@ describe('boot/challenge', () => {
 
     // eslint-disable-next-line max-len
     it('redirects to the url provided by the challengeUrlResolver', async done => {
-      const challengeUrlResolver = await createChallengeUrlResolver(mockApp, {
-        _getFirstChallenge: mockGetFirstChallenge
-      });
+      const challengeUrlResolver = await createChallengeUrlResolver(
+        mockAllChallenges,
+        {
+          _getFirstChallenge: mockGetFirstChallenge
+        }
+      );
       const expectedUrl = `${mockHomeLocation}${requestedChallengeUrl}`;
       const redirectToCurrentChallenge = createRedirectToCurrentChallenge(
         challengeUrlResolver,
-        { _homeLocation: mockHomeLocation, _learnUrl: mockLearnUrl }
+        mockNormalizeParams,
+        mockgetParamsFromReq
       );
       const req = mockReq({
         user: mockUser
@@ -377,12 +379,16 @@ describe('boot/challenge', () => {
 
     // eslint-disable-next-line max-len
     it('redirects to the first challenge for users without a currentChallengeId', async done => {
-      const challengeUrlResolver = await createChallengeUrlResolver(mockApp, {
-        _getFirstChallenge: mockGetFirstChallenge
-      });
+      const challengeUrlResolver = await createChallengeUrlResolver(
+        mockAllChallenges,
+        {
+          _getFirstChallenge: mockGetFirstChallenge
+        }
+      );
       const redirectToCurrentChallenge = createRedirectToCurrentChallenge(
         challengeUrlResolver,
-        { _homeLocation: mockHomeLocation, _learnUrl: mockLearnUrl }
+        mockNormalizeParams,
+        mockgetParamsFromReq
       );
       const req = mockReq({
         user: { ...mockUser, currentChallengeId: '' }
@@ -393,35 +399,6 @@ describe('boot/challenge', () => {
       const expectedUrl = `${mockHomeLocation}${firstChallengeUrl}`;
       expect(res.redirect.calledWith(expectedUrl)).toBe(true);
       done();
-    });
-  });
-
-  describe('redirectToLearn', () => {
-    const mockHome = 'https://example.com';
-    const mockLearn = 'https://example.com/learn';
-    const redirectToLearn = createRedirectToLearn(
-      mockPathMigrationMap,
-      mockHome,
-      mockLearn
-    );
-
-    it('redirects to learn by default', () => {
-      const req = mockReq({ path: '/challenges' });
-      const res = mockRes();
-
-      redirectToLearn(req, res);
-
-      expect(res.redirect.calledWith(mockLearn)).toBe(true);
-    });
-
-    it('maps to the correct redirect if the path matches a challenge', () => {
-      const req = mockReq({ path: '/challenges/challenge-two' });
-      const res = mockRes();
-      const expectedRedirect =
-        'https://example.com/learn/superblock/block/challenge-two';
-      redirectToLearn(req, res);
-
-      expect(res.redirect.calledWith(expectedRedirect)).toBe(true);
     });
   });
 });

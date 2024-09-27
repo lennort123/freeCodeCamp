@@ -1,29 +1,38 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
+import AuthOrProfile from './AuthOrProfile';
 
-import './menuButton.css';
+const MenuButton = props => {
+  const { t } = useTranslation();
 
-const MenuButton = React.forwardRef((props, ref) => (
-  <button
-    aria-expanded={props.displayMenu}
-    className={
-      'menu-button' +
-      (props.displayMenu ? ' menu-button-open' : '') +
-      ' ' +
-      (props.className ? props.className : 'top-menu-button')
-    }
-    onClick={props.onClick}
-    ref={ref}
-  >
-    Menu
-  </button>
-));
+  return (
+    <>
+      <button
+        aria-expanded={props.displayMenu}
+        className={
+          'toggle-button-nav' +
+          (props.displayMenu ? ' reverse-toggle-color' : '')
+        }
+        onClick={props.onClick}
+        ref={props.innerRef}
+      >
+        {t('buttons.menu')}
+      </button>
+      <span className='navatar'>
+        <AuthOrProfile user={props.user} />
+      </span>
+    </>
+  );
+};
 
 MenuButton.displayName = 'MenuButton';
 MenuButton.propTypes = {
   className: PropTypes.string,
   displayMenu: PropTypes.bool.isRequired,
-  onClick: PropTypes.func.isRequired
+  innerRef: PropTypes.object,
+  onClick: PropTypes.func.isRequired,
+  user: PropTypes.object
 };
 
 export default MenuButton;

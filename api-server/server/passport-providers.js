@@ -3,7 +3,8 @@ import { homeLocation, apiLocation } from '../../config/env';
 
 const { clientID, clientSecret, domain } = auth0;
 
-const successRedirect = `${homeLocation}/welcome`;
+// These don't seem to be used, can they go?
+const successRedirect = `${homeLocation}/learn`;
 const failureRedirect = `${homeLocation}/signin`;
 
 export default {
@@ -34,6 +35,8 @@ export default {
     authPath: '/auth/auth0',
     callbackPath: '/auth/auth0/callback',
     useCustomCallback: true,
+    passReqToCallback: true,
+    state: false,
     successRedirect: successRedirect,
     failureRedirect: failureRedirect,
     scope: ['openid profile email'],

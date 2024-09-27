@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 
+import PrismFormatted from './PrismFormatted';
 import './challenge-description.css';
 
 const propTypes = {
@@ -11,12 +12,12 @@ const propTypes = {
 
 function ChallengeDescription({ description, instructions, section }) {
   return (
-    <div className={`challenge-instructions ${section}`}>
-      <div dangerouslySetInnerHTML={{ __html: description }} />
+    <div className={`challenge-instructions${section ? ' ' + section : ''}`}>
+      {description && <PrismFormatted text={description} />}
       {instructions && (
         <Fragment>
           <hr />
-          <div dangerouslySetInnerHTML={{ __html: instructions }} />
+          <PrismFormatted text={instructions} />
         </Fragment>
       )}
       <hr />

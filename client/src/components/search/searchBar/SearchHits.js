@@ -1,47 +1,106 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { connectStateResults, connectHits } from 'react-instantsearch-dom';
 import isEmpty from 'lodash/isEmpty';
-import Suggestion from './SearchSuggestion';
+import { useTranslation } from 'react-i18next';
 
-const CustomHits = connectHits(({ hits, currentRefinement, handleSubmit }) => {
-  const defaultHit = [
-    {
-      objectID: `default-hit-${currentRefinement}`,
-      query: currentRefinement,
-      _highlightResult: {
-        query: {
-          value:
-            'Search for "<ais-highlight-0000000000>' +
-            currentRefinement +
-            '</ais-highlight-0000000000>"'
+import Suggestion from './SearchSuggestion';
+import NoHitsSuggestion from './NoHitsSuggestion';
+
+const CustomHits = connectHits(
+  ({
+    hits,
+    searchQuery,
+    handleMouseEnter,
+    handleMouseLeave,
+    selectedIndex,
+    handleHits
+  }) => {
+    const { t } = useTranslation();
+    const noHits = isEmpty(hits);
+    const noHitsTitle = t('search.no-tutorials');
+    const footer = [
+      {
+        objectID: `footer-${searchQuery}`,
+        query: searchQuery,
+        url: noHits
+          ? null
+          : t('search.search-page-url', {
+              searchQuery: encodeURIComponent(searchQuery)
+            }),
+        title: t('search.see-results', { searchQuery: searchQuery }),
+        _highlightResult: {
+          query: {
+            value: `
+              <ais-highlight-0000000000>
+                ${t('search.see-results', { searchQuery: searchQuery })}
+              </ais-highlight-0000000000>
+            `
+          }
         }
       }
-    }
-  ];
-  return (
-    <div className='ais-Hits'>
-      <ul className='ais-Hits-list'>
-        {defaultHit.concat(hits).map(hit => (
-          <li
-            className='ais-Hits-item'
-            data-fccobjectid={hit.objectID}
-            key={hit.objectID}
-          >
-            <Suggestion handleSubmit={handleSubmit} hit={hit} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-});
+    ];
+    const allHits = hits.slice(0, 8).concat(footer);
+    useEffect(() => {
+      handleHits(allHits);
+    });
 
-const SearchHits = connectStateResults(({ handleSubmit, searchState }) => {
-  return isEmpty(searchState) || !searchState.query ? null : (
-    <CustomHits
-      currentRefinement={searchState.query}
-      handleSubmit={handleSubmit}
-    />
-  );
-});
+    return (
+      <div className='ais-Hits'>
+        <ul className='ais-Hits-list'>
+          {allHits.map((hit, i) => (
+            <li
+              className={
+                !noHits && i === selectedIndex
+                  ? 'ais-Hits-item selected'
+                  : 'ais-Hits-item'
+              }
+              data-fccobjectid={hit.objectID}
+              key={hit.objectID}
+            >
+              {noHits ? (
+                <NoHitsSuggestion
+                  handleMouseEnter={handleMouseEnter}
+                  handleMouseLeave={handleMouseLeave}
+                  title={noHitsTitle}
+                />
+              ) : (
+                <Suggestion
+                  handleMouseEnter={handleMouseEnter}
+                  handleMouseLeave={handleMouseLeave}
+                  hit={hit}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+);
+
+const SearchHits = connectStateResults(
+  ({
+    searchState,
+    handleMouseEnter,
+    handleMouseLeave,
+    selectedIndex,
+    handleHits
+  }) => {
+    return isEmpty(searchState) || !searchState.query ? null : (
+      <CustomHits
+        handleHits={handleHits}
+        handleMouseEnter={handleMouseEnter}
+        handleMouseLeave={handleMouseLeave}
+        searchQuery={searchState.query}
+        selectedIndex={selectedIndex}
+      />
+    );
+  }
+);
+
+CustomHits.propTypes = {
+  handleHits: PropTypes.func.isRequired
+};
 
 export default SearchHits;
